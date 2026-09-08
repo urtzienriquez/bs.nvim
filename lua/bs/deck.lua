@@ -166,7 +166,13 @@ local function open_highlighted(kind)
 		return
 	end
 	local target
-	vim.api.nvim_win_call(M.from_win, function()
+	local deck_win = M.win_id
+	-- Operate from `from_win`. `nvim_set_current_win` (not `nvim_win_call`,
+	-- which uses a "no_display" window switch) performs the proper
+	-- leave/enter_tabpage side effects, so the tabline's size bookkeeping
+	-- stays correct and the tabline doesn't vanish after the split/tab.
+	if vim.api.nvim_win_is_valid(M.from_win) then
+		vim.api.nvim_set_current_win(M.from_win)
 		if kind == "tab" then
 			-- `tab split` duplicates the current window's buffer into a new
 			-- tabpage; `tabnew` would leave a stray `[No Name]` buffer behind
@@ -177,11 +183,11 @@ local function open_highlighted(kind)
 		end
 		target = vim.api.nvim_get_current_win()
 		marks.jump(row.char, target)
-	end)
-	if M.sticky then
-		vim.api.nvim_set_current_win(M.win_id)
-		render()
-		return
+		if M.sticky then
+			vim.api.nvim_set_current_win(deck_win)
+			render()
+			return
+		end
 	end
 	M.close()
 	if target ~= nil and vim.api.nvim_win_is_valid(target) then
