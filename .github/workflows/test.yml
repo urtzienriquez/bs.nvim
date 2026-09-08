@@ -1,0 +1,41 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Neovim ${{ matrix.neovim }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        neovim:
+          - stable
+          - nightly
+
+    steps:
+      - name: Checkout bs
+        uses: actions/checkout@v4
+
+      - name: Install Neovim (${{ matrix.neovim }})
+        uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: ${{ matrix.neovim }}
+
+      - name: Install plenary.nvim
+        run: |
+          mkdir -p ~/.local/share/nvim/site/pack/test/start
+          git clone --depth 1 https://github.com/nvim-lua/plenary.nvim \
+            ~/.local/share/nvim/site/pack/test/start/plenary.nvim
+
+      - name: Run test suite
+        run: |
+          nvim --headless -u tests/minimal_init.lua \
+          -c "lua require('plenary.test_harness').test_directory('tests/', { incremental = false, sequential = true, halt_on_error = true })" \
+          -c "qa!"
